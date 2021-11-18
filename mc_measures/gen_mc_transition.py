@@ -102,15 +102,14 @@ class GenMarkovTransitionProb:
 		# initial k activities/strings. 
 		assert len(kgram) == self.k
 		# by simulating a trajectory through the corresponding
-		activity_list = kgram
+		activity_list = list(kgram)
 		# Markov chain. The first k activities of the newly
 		for i in range(T):
 			# generated list should be the argument kgram.
 			#print kgram, c
 			# check if kgram is of length k.
-			c =  self.rand(text)[0]
+			c =  self.rand(kgram)[0]
 			# Assume that T is at least k.
-			kgram = kgram[1:] + (c,)
+			kgram = tuple(kgram[1:]) + (c,)
 			activity_list += c
 		return activity_list
-=
