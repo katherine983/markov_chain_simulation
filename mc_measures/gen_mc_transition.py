@@ -25,7 +25,11 @@ class GenMarkovTransitionProb:
 		# sample size
 		self.n = len(text)
 		# text += text[:k]
-		
+		# stationary probability distribution of the markov matrix
+		self.stat_prob = defaultdict(int)
+		# marginal frequency of each alph in the matrix
+        self.stat_freq = defaultdict(int)
+
 		# if self.k == 0:
 		# 	k_successive = [() for a in product(text, repeat=0)]
 		## use k_successive to generate the past states. 
@@ -57,11 +61,18 @@ class GenMarkovTransitionProb:
 					# e.g.: {(('adfg', 'dafae', 'dafae'), 'dafae'): 1.0} print("m.tran", m.tran, len(m.tran))
 					# m.kgrams is a dictionary that shows the count of each k successive activities
 					# e.g.: {('abc', 'abc', 'abc'): 1} print("m.kgrams", m.kgrams)
+					#self.tran[successive,text[j-1+k]]=1000
 					self.tran[successive,text[j-1+k]] = float(np.random.randint(1, 100, size=1)[0])
+					#add count to marginal frequency of kgram
 					if successive not in self.kgrams.keys():
 						self.kgrams[successive] = self.tran[successive,text[j-1+k]]
 					else:
 						self.kgrams[successive] += self.tran[successive,text[j-1+k]]
+					#add count to marginal frequency of the alph at text[j-1+k]
+                    if text[j-1+k] not in self.stat_freq.keys():
+                        self.stat_freq[text[j-1+k]]= self.tran[successive,text[j-1+k]]
+                    else:
+                        self.stat_freq[text[j-1+k]]=self.tran[successive,text[j-1+k]]
 		
 	def order(self):
 		# order k of Markov model
@@ -78,6 +89,10 @@ class GenMarkovTransitionProb:
 		assert len(kgram) == self.k
 		# (check if kgram is of length k)
 		return self.tran[kgram,c]
+
+	def freq3(self, alph):
+		assert alph in self.stat_freq.keys()
+		return self.stat_freq[alph]
 
 	def prob_tran(self):
 		# transition matrix with probability
