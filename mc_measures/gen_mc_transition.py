@@ -28,11 +28,11 @@ class GenMarkovTransitionProb:
 		# stationary probability distribution of the markov matrix
 		self.stat_prob = defaultdict(int)
 		# marginal frequency of each alph in the matrix
-        self.stat_freq = defaultdict(int)
-
+		self.stat_freq = defaultdict(int)
+		self.ent_rate = None
 		# if self.k == 0:
-		# 	k_successive = [() for a in product(text, repeat=0)]
-		## use k_successive to generate the past states. 
+		# k_successive = [() for a in product(text, repeat=0)]
+		# use k_successive to generate the past states. 
 		if self.k == 1:
 			k_successive = [(a) for a in product(text, repeat=1)]
 		elif self.k == 2:
@@ -50,7 +50,6 @@ class GenMarkovTransitionProb:
 			k_successive = [(a, b, c, d, e, f) for a,b,c,d,e,f in product(text, repeat=6)]
 		else: 
 			print("chose the MC order between 0 to 6.")
-
 		## assign a random number to each cell/element in the transition matrix. 
 		for successive in k_successive:
 			# print("in successive", successive)
@@ -69,10 +68,10 @@ class GenMarkovTransitionProb:
 					else:
 						self.kgrams[successive] += self.tran[successive,text[j-1+k]]
 					#add count to marginal frequency of the alph at text[j-1+k]
-                    if text[j-1+k] not in self.stat_freq.keys():
-                        self.stat_freq[text[j-1+k]]= self.tran[successive,text[j-1+k]]
-                    else:
-                        self.stat_freq[text[j-1+k]]=self.tran[successive,text[j-1+k]]
+					if text[j-1+k] not in self.stat_freq.keys():
+						self.stat_freq[text[j-1+k]]= self.tran[successive,text[j-1+k]]
+					else:
+						self.stat_freq[text[j-1+k]]=self.tran[successive,text[j-1+k]]
 		
 	def order(self):
 		# order k of Markov model
@@ -130,9 +129,30 @@ class GenMarkovTransitionProb:
 		return activity_list
 		
 	def stationary_dist(self):
-        # added function for entropy_Monte_Carlo
-        Z = sum(self.stat_freq.values())
-        
-        for alph in self.alph:
-            self.stat_prob[alph] = self.stat_freq3(alph)/Z
-        return self.stat_prob
+		# added function for entropy_Monte_Carlo
+		Z = sum(self.stat_freq.values())
+		
+		for alph in self.alph:
+			self.stat_prob[alph] = self.stat_freq3(alph)/Z
+		return self.stat_prob
+
+	def entropy_rate(self):
+		# Added function for entropy_Monte_Carlo.
+		# Calculates basic entropy rate of the Markov process
+		# (equivalent to the Approximate Entropy) using the transition probabilities
+		# stored in self.prob_tran_matrix and the stationary probabilities
+		# Entropy rate formula as -Sum over all i,j Pr(i)*Pr(i,j)ln(Pr(i,j))
+		# where Pr(i) is the stationary probability of state i and Pr(i, j) is the transition probability 
+		# of i given j. 
+		ent_rate = []
+		self.prob_tran()
+		self.stationary_dist()
+		for key, value in self.prob_tran_matrix.items():
+			# key[0] = kgram 
+			# key[1] = alph succeeding kgram
+			# value =  transition probability from kgram to alph
+			ent_rate += (self.stat_prob[key[1]]*self.prob_tran_matrix[key]*math.log(self.prob_tran_matrix[key]))
+		self.ent_rate = -sum(ent_rate)
+		return self.ent_rate
+
+		
