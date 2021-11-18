@@ -128,4 +128,11 @@ class GenMarkovTransitionProb:
 			kgram = kgram[1:] + (c,)
 			activity_list += c
 		return activity_list
-=
+		
+	def stationary_dist(self):
+        # added function for entropy_Monte_Carlo
+        Z = sum(self.stat_freq.values())
+        
+        for alph in self.alph:
+            self.stat_prob[alph] = self.stat_freq3(alph)/Z
+        return self.stat_prob
