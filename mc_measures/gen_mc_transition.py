@@ -113,3 +113,36 @@ class GenMarkovTransitionProb:
 			kgram = tuple(kgram[1:]) + (c,)
 			activity_list += c
 		return activity_list
+
+	def gen_sample(self, kgram, T, seed=None, generator='default'):
+		# Updated method for generating a random sample from the Markov transition matrix combining
+		# the functionality of the self.gen() and self.rand() methods.
+		# This method replaces the use of legacy np.random.choice (deprecated after v1.16)
+		# with current best practice numpy random number generation. 
+		# gen_sample() allows for user specified BitGenerator and seed for reproducibility.
+		# Default BitGenerator is to use the default numpy generator via using np.random.default_rng().
+		# This uses the current default bitgenerator, allowing it to adapt as default generator is updated
+		# in numpy package. Otherwise generator kwarg expects a bit_generator func from np.random
+		# Function also saves seed in self.seed attribute for access later.
+		# activity_list is a list containing the randomly generated markov chain
+		#
+		# set seed sequence using value given to seed arg.
+		# If value is an entropy value from a previous seed sequence, ss will be identical to
+		# the previous seed sequence.
+		ss = np.random.SeedSequence(seed)
+		# save entropy so that seed sequence can be reproduced later
+		self.seed = ss.entropy
+		if generator == 'default':
+			rng = np.random.default_rng(ss)
+		else:
+			rng = np.random.Generator(generator(ss))
+		assert len(kgram) == self.k
+		# initiate list to contain generated markov chain
+		activity_list = list(kgram)
+		for i in range(T):
+			#get marginal frequency of kgram
+			Z = sum([self.tran[kgram, alph] for alph in self.alph])
+			c = rng.choice(self.alph, 1, p=np.array([self.tran[kgram, alph] for alph in self.alph])/Z)[0]
+			activity_list += c
+			kgram = tuple(kgram[1:]) + (c,)
+		return activity_list
