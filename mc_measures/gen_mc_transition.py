@@ -125,8 +125,8 @@ class GenMarkovTransitionProb:
 		# in numpy package. Otherwise generator kwarg expects a bit_generator func from np.random
 		# Function also saves seed in self.seed attribute for access later.
 		# activity_list is a list containing the randomly generated markov chain
-		#
-		# set seed sequence using value given to seed arg.
+
+		# Set seed sequence using value given to seed arg.
 		# If value is an entropy value from a previous seed sequence, ss will be identical to
 		# the previous seed sequence.
 		ss = np.random.SeedSequence(seed)
