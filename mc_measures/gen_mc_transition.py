@@ -3,6 +3,34 @@ import math
 from collections import defaultdict  
 from itertools import product
 from string import ascii_lowercase
+import pathlib
+import json
+from ast import literal_eval
+
+def create_output_file_path(root_dir=None, out_dir='MC_matrices', out_name=None, overide=False):
+    """ Create path object for the output filepath for the output file.
+    
+    Optional Keyword arguments:
+    root_dir -- string literal or pathlike object refering to the target root directory
+    out_dir -- string literal representing target directory to be appended to root if root is not target directory
+    out_name -- string literal representing the filename for the output file
+
+    Return : path object to save simulation data in
+
+    """
+    if not root_dir:
+        root_dir = Path.cwd()
+    dir = Path(root_dir, out_dir)
+    if not dir.is_dir():
+        dir.mkdir(parents=True)
+    if not out_name:
+        out_name = r".txt".format()
+    out_path = dir / out_name
+    if out_path.exists():
+        if overide == False:
+            raise Exception("Output file already exists. Please enter unique filepath information or use overide==True.")
+    else:
+        return out_path
 
 class GenMarkovTransitionProb:      
 
@@ -189,3 +217,28 @@ class GenMarkovTransitionProb:
 			activity_list += c
 			kgram = tuple(kgram[1:]) + (c,)
 		return activity_list
+	
+	def dump(self, outpath, ):
+		data = {'MC_order' : self.k, ''}
+
+
+
+def genMCmodel(root_dir, order_i, states_nums, states_temp):
+	fout_file_path = create_output_file_path(root_dir)
+
+
+if __name__ == '__main__':
+	# root_dir = "/Users/BeiyuLin/Desktop/five_datasets/"
+	root_dir = "./"
+	# order_i is the given order of markov chain
+	order_i = int(sys.argv[1])
+	# states_nums is the number of states in the process (i.e. the size of the alphabet)
+	states_nums = int(sys.argv[2])
+	#start_sample_size = int(sys.argv[3])
+	#end_sample_size = int(sys.argv[4])
+	# based on randomly generated transition matrix.
+	# http://www.iaeng.org/publication/WCECS2014/WCECS2014_pp899-901.pdf
+	# 
+	states_temp = [chr(ord('a')+i) for i in range(states_nums)]
+	 # = ['a','b','c','d','e','f','g','h','u']
+	# generate 1000 random transition matrix 
