@@ -40,7 +40,7 @@ def percentage_order_category(selected_order, order_i, percentage_order):
 	for measure in selected_order.keys():
 		# print("measure", measure)
 		mean_error = float(selected_order[measure]) - float(order_i)
-		if mean_error < 0.0
+		if mean_error < 0.0:
 			# selected_order[measure] < order_i:
 			percentage_order[measure]["under_estimate"] =  percentage_order.get(measure, 0.0).get("under_estimate", 0.0) + abs(mean_error)
 			under_estimate_count[measure] = under_estimate_count.get(measure, 0) + 1
