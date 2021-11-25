@@ -26,7 +26,7 @@ def create_output_file_path(root_dir=None, out_dir='MC_matrices', out_name=None,
     if not dir.is_dir():
         dir.mkdir(parents=True)
     if not out_name:
-        out_name = f"MC_model_{datetime.now().isoformat(timespec='seconds')}.txt"
+        out_name = f"MC_model_{datetime.datetime.now().isoformat(timespec='seconds')}.txt"
     out_path = dir / out_name
     if out_path.exists():
         if overide == False:
@@ -51,6 +51,7 @@ class GenMarkovTransitionProb:
         self.m = len(self.alph)
         # kgrams shows the count of each k successive activities
         # e.g.: {('abc', 'abc', 'abc'): 1}
+        # functions as the stationary distribution frequencies of the markov matrix
         self.kgrams = defaultdict(int)  
         # sample size
         self.n = len(text)
@@ -58,7 +59,7 @@ class GenMarkovTransitionProb:
         # stationary probability distribution of the markov matrix
         self.stat_prob = defaultdict(int)
         # marginal frequency of each alph in the matrix
-        self.stat_freq = defaultdict(int)
+        self.alph_freq = defaultdict(int)
         self.ent_rate = None
         # if self.k == 0:
         # k_successive = [() for a in product(text, repeat=0)]
@@ -98,10 +99,10 @@ class GenMarkovTransitionProb:
                     else:
                         self.kgrams[successive] += self.tran[successive,text[j-1+k]]
                     #add count to marginal frequency of the alph at text[j-1+k]
-                    if text[j-1+k] not in self.stat_freq.keys():
-                        self.stat_freq[text[j-1+k]]= self.tran[successive,text[j-1+k]]
+                    if text[j-1+k] not in self.alph_freq.keys():
+                        self.alph_freq[text[j-1+k]]= self.tran[successive,text[j-1+k]]
                     else:
-                        self.stat_freq[text[j-1+k]]=self.tran[successive,text[j-1+k]]
+                        self.alph_freq[text[j-1+k]]=self.tran[successive,text[j-1+k]]
         
     def order(self):
         # order k of Markov model
@@ -120,8 +121,8 @@ class GenMarkovTransitionProb:
         return self.tran[kgram,c]
 
     def freq3(self, alph):
-        assert alph in self.stat_freq.keys()
-        return self.stat_freq[alph]
+        assert alph in self.alph_freq.keys()
+        return self.alph_freq[alph]
 
     def prob_tran(self):
         # transition matrix with probability
@@ -159,21 +160,40 @@ class GenMarkovTransitionProb:
         return activity_list
         
     def stationary_dist(self):
+        """
+        Added function for entropy_Monte_Carlo package.
+
+        Returns
+        -------
+        self.stat_prob - DEFAULTDICT
+            DICTIONARY WHERE EACH KEY, VALUE PAIR IS A KGRAM IN THE SET OF ALL 
+            POSSIBLE KGRAMS AND ITS CORRESPONDING STATIONARY PROBABILITY IN THE
+            MARKOV PROCESS.
+
+        """
         # added function for entropy_Monte_Carlo
-        Z = sum(self.stat_freq.values())
-        
-        for alph in self.alph:
-            self.stat_prob[alph] = self.freq3(alph)/Z
+        Z = sum(self.kgrams.values())
+        for kgram, freq in self.kgrams.items():
+            self.stat_prob[kgram] = freq/Z
         return self.stat_prob
 
     def entropy_rate(self):
-        # Added function for entropy_Monte_Carlo.
-        # Calculates basic entropy rate of the Markov process
-        # (equivalent to the Approximate Entropy) using the transition probabilities
-        # stored in self.prob_tran_matrix and the stationary probabilities
-        # Entropy rate formula as -Sum over all i,j Pr(i)*Pr(i,j)ln(Pr(i,j))
-        # where Pr(i) is the stationary probability of state i and Pr(i, j) is the transition probability 
-        # of i given j. 
+        """ Added function for entropy_Monte_Carlo.
+        
+        Calculates basic entropy rate (equivalent to the Approximate Entropy)
+        of the Markov process using the transition probabilities stored in
+        self.prob_tran_matrix and the stationary probabilities.
+        Uses Entropy rate formula as -Sum over all i,j Pr(i)*Pr(i,j)ln(Pr(i,j))
+        where Pr(i) is the stationary probability of state i, which corresponds
+        to kgram in this case, and Pr(i, j) is the transition probability
+        of i given j, which corresponds to the transition from kgram to alph.
+        
+        Returns
+        -------
+        self.ent_rate.
+        
+        """
+        # ent_rate is list to store Pr(i)*Pr(i,j)ln(Pr(i,j)) for each i, j.
         ent_rate = []
         self.prob_tran()
         self.stationary_dist()
@@ -181,7 +201,10 @@ class GenMarkovTransitionProb:
             # key[0] = kgram, a tuple
             # key[1] = alph succeeding kgram, single unicode character
             # value =  transition probability from kgram to alph
-            ent_rate += (self.stat_prob[key[1]]*self.prob_tran_matrix[key]*math.log(self.prob_tran_matrix[key]))
+            stat_prob = self.stat_prob[key[0]]
+            print(key[0])
+            print(key[1])
+            ent_rate.append(self.stat_prob[key[0]]*value*math.log(value))
         self.ent_rate = -sum(ent_rate)
         return self.ent_rate
 
@@ -226,9 +249,13 @@ class GenMarkovTransitionProb:
         outpath -- takes a path object pointing to a file location for the output to be written to. 
         **kwargs -- any additional arguments to be fed to json.dump()
         """
-        with open(outpath) as fouthand:
-            data = {'MC_order' : self.k, 'Alphabet' : self.alph, 'Transition_Matrix_Frequencies' : {str(k) : v for k, v in self.tran.items()}, 
-            'Stationary_Distribution' : self.stat_freq, 'Entropy_Rate' : self.ent_rate, 'Date_created' : datetime.now().isoformat(timespec='seconds')}
+        with open(outpath, 'w+') as fouthand:
+            data = {'MC_order' : self.k,
+                    'Alphabet' : self.alph,
+                    'Transition_Matrix_Frequencies' : {str(k) : v for k, v in self.tran.items()},
+                    'Stationary_Distribution_Frequencies' : {str(k) : v for k, v in self.kgrams.items()},
+                    'Entropy_Rate' : self.ent_rate,
+                    'Date_created' : datetime.datetime.now().isoformat(timespec='seconds')}
             json.dump(data, fouthand, **kwargs)
 
 
@@ -257,7 +284,7 @@ def genMCmodel(root_dir, order_i, states_temp):
     """
     MC_model = GenMarkovTransitionProb(states_temp, order_i)
     MC_model.entropy_rate()
-    fout_file_path = create_output_file_path(root_dir, r'MC_matrices', f'Order{order_i}Alph{MC_model.m}ER{MC_model.ent_rate}.json')
+    fout_file_path = create_output_file_path(root_dir, r'MC_matrices', f'Order{order_i}Alph{MC_model.m}ER{MC_model.ent_rate:.2f}.json')
     MC_model.dump(fout_file_path)
 
 
