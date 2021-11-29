@@ -33,13 +33,46 @@ def create_output_file_path(root_dir=None, out_dir='MC_matrices', out_name=None,
             raise Exception("Output file already exists. Please enter unique filepath information or use overide==True.")
     else:
         return out_path
+    
+def get_data_file_path(root_dir=None, out_dir='MC_matrices', out_name=None):
+    """ Create path object for the output filepath for the output file.
+    
+    Optional Keyword arguments:
+    root_dir -- string literal or pathlike object refering to the target root directory
+    out_dir -- string literal representing target directory to be appended to root if root is not target directory
+    out_name -- string literal representing the filename for the output file
+
+    Return : path object to save simulation data in
+
+    """
+    if not root_dir:
+        root_dir = Path.cwd()
+    dir = Path(root_dir, out_dir)
+    if not dir.is_dir():
+        dir.mkdir(parents=True)
+    if not out_name:
+        out_name = f"MC_model_{datetime.datetime.now().isoformat(timespec='seconds')}.txt"
+    out_path = dir / out_name
+    if not out_path.exists():
+        raise Exception("File does not exist. Please enter existing filepath.")
+    else:
+        return out_path
 
 class GenMarkovTransitionProb:      
 
-    def __init__(self, text, k):          
-        '''create a Markov model of order k from given activities         
-        Assume that text has length at least k.'''
-        # k is the order, type - int
+    def __init__(self, text, k, transition_freq_matrix=None):          
+        '''create a Markov model of order k from given activities in text.    
+        Assume that text has length at least k.
+        Parameters
+        ----------
+        text : STRING OR ITERABLE
+            ITERABLE CONTAINING THE STATES OF THE MARKOV MODEL.
+        k : INT
+            ORDER OF THE MARKOV MODEL.
+        transition_freq_matrix : DICT, default None.
+            DICT OBJECT CONTAINING THE TRANSITION MATRIX WITH COUNT NOT PROBABILITY.
+        '''
+        
         # print("GenMarkovTransitionProb %s%s" %(text, k))
         self.k = k
         self.prob_tran_matrix = defaultdict(float)
@@ -63,7 +96,28 @@ class GenMarkovTransitionProb:
         self.ent_rate = None
         # if self.k == 0:
         # k_successive = [() for a in product(text, repeat=0)]
-        # use k_successive to generate the past states. 
+        # use k_successive to generate the past states.
+        if not transition_freq_matrix:
+            self._new_transition_matrix(text)
+        else:
+            self._load_transition_matrix(transition_freq_matrix)        
+            
+    def _load_transition_matrix(self, transition_freq_matrix):
+        self.tran = transition_freq_matrix
+        for key, value in self.tran.items():
+            # key[0] = kgram
+            # key[1] = alph
+            # value = count of transition from kgram to alph
+            if key[0] not in self.kgrams.keys():
+                self.kgrams[key[0]] = value
+            else:
+                self.kgrams[key[0]] += value
+            if key[0] not in self.alph_freq.keys():
+                self.alph_freq[key[1]] = value
+            else:
+                self.alph_freq[key[1]] += value
+        return self
+    def _new_transition_matrix(self, text):
         if self.k == 1:
             k_successive = [(a) for a in product(text, repeat=1)]
         elif self.k == 2:
@@ -85,24 +139,24 @@ class GenMarkovTransitionProb:
         for successive in k_successive:
             # print("in successive", successive)
             for j in range(self.n):
-                if j-1+k < self.n:
+                if j-1+self.k < self.n:
                     # successive is the past states, text[j-1+k] is the next state. 
                     # tran is the transition matrix.
                     # e.g.: {(('adfg', 'dafae', 'dafae'), 'dafae'): 1.0} print("m.tran", m.tran, len(m.tran))
                     # m.kgrams is a dictionary that shows the count of each k successive activities
                     # e.g.: {('abc', 'abc', 'abc'): 1} print("m.kgrams", m.kgrams)
                     #self.tran[successive,text[j-1+k]]=1000
-                    self.tran[successive,text[j-1+k]] = float(np.random.randint(1, 100, size=1)[0])
+                    self.tran[successive,text[j-1+self.k]] = float(np.random.randint(1, 100, size=1)[0])
                     #add count to marginal frequency of kgram
                     if successive not in self.kgrams.keys():
-                        self.kgrams[successive] = self.tran[successive,text[j-1+k]]
+                        self.kgrams[successive] = self.tran[successive,text[j-1+self.k]]
                     else:
-                        self.kgrams[successive] += self.tran[successive,text[j-1+k]]
+                        self.kgrams[successive] += self.tran[successive,text[j-1+self.k]]
                     #add count to marginal frequency of the alph at text[j-1+k]
-                    if text[j-1+k] not in self.alph_freq.keys():
-                        self.alph_freq[text[j-1+k]]= self.tran[successive,text[j-1+k]]
+                    if text[j-1+self.k] not in self.alph_freq.keys():
+                        self.alph_freq[text[j-1+self.k]]= self.tran[successive,text[j-1+self.k]]
                     else:
-                        self.alph_freq[text[j-1+k]]=self.tran[successive,text[j-1+k]]
+                        self.alph_freq[text[j-1+self.k]]=self.tran[successive,text[j-1+self.k]]
         
     def order(self):
         # order k of Markov model
@@ -246,7 +300,8 @@ class GenMarkovTransitionProb:
     def dump(self, outpath, **kwargs):
         """Writes MC matrix data to a json file. Opens the file, writes, and closes it.
         
-        outpath -- takes a path object pointing to a file location for the output to be written to. 
+        outpath : PATH-LIKE OBJECT OR STRING LITERAL OF A FILE PATH
+            takes a path object pointing to a file location for the output to be written to. 
         **kwargs -- any additional arguments to be fed to json.dump()
         """
         with open(outpath, 'w+') as fouthand:
@@ -257,9 +312,31 @@ class GenMarkovTransitionProb:
                     'Entropy_Rate' : self.ent_rate,
                     'Date_created' : datetime.datetime.now().isoformat(timespec='seconds')}
             json.dump(data, fouthand, **kwargs)
+    
+    @classmethod
+    def load(cls, filepath, **kwargs):
+        """
+        Contructor method to construct a GenMarkovTransitionProb object from
+        json file created by the GenMarkovTransitionProb.dump method. 
 
+        Parameters
+        ----------
+        filepath : PATH-LIKE OBJECT OR STRING LITERAL OF A FILE PATH
+            DESCRIPTION.
+        **kwargs : DICT
+            OPTIONAL DICT OF KEYWORD ARGUMENTS TO BE PASSED TO json.load().
 
+        Returns
+        -------
+        GenMarkovTransitionProb object with same transition matrix as one
+        saved in the json file.
 
+        """
+        with open(filepath, 'r') as fhand:
+            data = json.load(fhand)
+            transition_freq_matrix = {literal_eval(k) : v for k, v in data['Transition_Matrix_Frequencies'].items()}
+            text = data['Alphabet']
+            return cls(text, data['MC_order'], transition_freq_matrix)
 
 def genMCmodel(root_dir, order_i, states_temp):
     """
@@ -284,8 +361,13 @@ def genMCmodel(root_dir, order_i, states_temp):
     """
     MC_model = GenMarkovTransitionProb(states_temp, order_i)
     MC_model.entropy_rate()
-    fout_file_path = create_output_file_path(root_dir, r'MC_matrices', f'Order{order_i}Alph{MC_model.m}ER{MC_model.ent_rate:.2f}.json')
+    fout_file_path = create_output_file_path(root_dir, r'MC_matrices', f'Order{order_i}Alph{MC_model.m}ER{MC_model.ent_rate:.4f}.json')
     MC_model.dump(fout_file_path)
+    return MC_model
+
+def getMCmodel(file_path):
+    MC_model_copy = GenMarkovTransitionProb.load(file_path)
+    return MC_model_copy
 
 
 if __name__ == '__main__':
@@ -303,4 +385,8 @@ if __name__ == '__main__':
     states_temp = [chr(ord('a')+i) for i in range(states_nums)]
     # = ['a','b','c','d','e','f','g','h','u']
     # generate 1000 random transition matrix
-    genMCmodel(root_dir, order_i, states_temp)
+    MC1 = genMCmodel(root_dir, order_i, states_temp)
+    print(MC1.tran)
+    fpath = get_data_file_path(root_dir, r'MC_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.4f}.json')
+    MC2 = getMCmodel(fpath)
+    MC1 == MC2
