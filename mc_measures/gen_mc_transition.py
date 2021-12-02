@@ -215,7 +215,7 @@ class GenMarkovTransitionProb:
         
     def stationary_dist(self):
         """
-        Added function for entropy_Monte_Carlo package.
+        Added function for mc_entropy package.
 
         Returns
         -------
@@ -225,14 +225,14 @@ class GenMarkovTransitionProb:
             MARKOV PROCESS.
 
         """
-        # added function for entropy_Monte_Carlo
+        # added function for mc_entropy
         Z = sum(self.kgrams.values())
         for kgram, freq in self.kgrams.items():
             self.stat_prob[kgram] = freq/Z
         return self.stat_prob
 
     def entropy_rate(self):
-        """ Added function for entropy_Monte_Carlo.
+        """ Added function for mc_entropy.
         
         Calculates basic entropy rate (equivalent to the Approximate Entropy)
         of the Markov process using the transition probabilities stored in
