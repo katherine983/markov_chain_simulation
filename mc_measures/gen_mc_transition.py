@@ -1,6 +1,6 @@
-import numpy as np 
+import numpy as np
 import math
-from collections import defaultdict  
+from collections import defaultdict
 from itertools import product
 from string import ascii_lowercase
 from pathlib import Path
@@ -11,7 +11,7 @@ import sys
 
 def create_output_file_path(root_dir=None, out_dir='MC_matrices', out_name=None, overide=False):
     """ Create path object for the output filepath for the output file.
-    
+
     Optional Keyword arguments:
     root_dir -- string literal or pathlike object refering to the target root directory
     out_dir -- string literal representing target directory to be appended to root if root is not target directory
@@ -33,10 +33,10 @@ def create_output_file_path(root_dir=None, out_dir='MC_matrices', out_name=None,
             raise Exception("Output file already exists. Please enter unique filepath information or use overide==True.")
     else:
         return out_path
-    
+
 def get_data_file_path(root_dir=None, out_dir='MC_matrices', out_name=None):
     """ Create path object for the output filepath for the output file.
-    
+
     Optional Keyword arguments:
     root_dir -- string literal or pathlike object refering to the target root directory
     out_dir -- string literal representing target directory to be appended to root if root is not target directory
@@ -58,10 +58,10 @@ def get_data_file_path(root_dir=None, out_dir='MC_matrices', out_name=None):
     else:
         return out_path
 
-class GenMarkovTransitionProb:      
+class GenMarkovTransitionProb:
 
-    def __init__(self, text, k, transition_freq_matrix=None):          
-        '''create a Markov model of order k from given activities in text.    
+    def __init__(self, text, k, transition_freq_matrix=None):
+        '''create a Markov model of order k from given activities in text.
         Assume that text has length at least k.
         Parameters
         ----------
@@ -72,20 +72,20 @@ class GenMarkovTransitionProb:
         transition_freq_matrix : DICT, default None.
             DICT OBJECT CONTAINING THE TRANSITION MATRIX WITH COUNT NOT PROBABILITY.
         '''
-        
+
         # print("GenMarkovTransitionProb %s%s" %(text, k))
         self.k = k
         self.prob_tran_matrix = defaultdict(float)
         # the transtion matrix (with count not probability)
-        self.tran = defaultdict(float)  
-        # a list of unique activities/states 
-        self.alph = list(set(list(text))) 
+        self.tran = defaultdict(float)
+        # a list of unique activities/states
+        self.alph = list(set(list(text)))
         # number of states
         self.m = len(self.alph)
         # kgrams shows the count of each k successive activities
         # e.g.: {('abc', 'abc', 'abc'): 1}
         # functions as the stationary distribution frequencies of the markov matrix
-        self.kgrams = defaultdict(int)  
+        self.kgrams = defaultdict(int)
         # sample size
         self.n = len(text)
         # text += text[:k]
@@ -93,6 +93,7 @@ class GenMarkovTransitionProb:
         self.stat_prob = defaultdict(int)
         # marginal frequency of each alph in the matrix
         self.alph_freq = defaultdict(int)
+        self.ent_rate_est = None
         self.ent_rate = None
         # if self.k == 0:
         # k_successive = [() for a in product(text, repeat=0)]
@@ -100,8 +101,8 @@ class GenMarkovTransitionProb:
         if not transition_freq_matrix:
             self._new_transition_matrix(text)
         else:
-            self._load_transition_matrix(transition_freq_matrix)        
-            
+            self._load_transition_matrix(transition_freq_matrix)
+
     def _load_transition_matrix(self, transition_freq_matrix):
         self.tran = transition_freq_matrix
         for key, value in self.tran.items():
@@ -133,38 +134,37 @@ class GenMarkovTransitionProb:
         elif self.k == 6:
             print("6th order.")
             k_successive = [(a, b, c, d, e, f) for a,b,c,d,e,f in product(text, repeat=6)]
-        else: 
+        else:
             print("chose the MC order between 0 to 6.")
-        ## assign a random number to each cell/element in the transition matrix. 
+        ## assign a random number to each cell/element in the transition matrix.
         for successive in k_successive:
             # print("in successive", successive)
             for j in range(self.n):
-                if j-1+self.k < self.n:
-                    # successive is the past states, text[j-1+k] is the next state. 
-                    # tran is the transition matrix.
-                    # e.g.: {(('adfg', 'dafae', 'dafae'), 'dafae'): 1.0} print("m.tran", m.tran, len(m.tran))
-                    # m.kgrams is a dictionary that shows the count of each k successive activities
-                    # e.g.: {('abc', 'abc', 'abc'): 1} print("m.kgrams", m.kgrams)
-                    #self.tran[successive,text[j-1+k]]=1000
-                    self.tran[successive,text[j-1+self.k]] = float(np.random.randint(1, 100, size=1)[0])
-                    #add count to marginal frequency of kgram
-                    if successive not in self.kgrams.keys():
-                        self.kgrams[successive] = self.tran[successive,text[j-1+self.k]]
-                    else:
-                        self.kgrams[successive] += self.tran[successive,text[j-1+self.k]]
-                    #add count to marginal frequency of the alph at text[j-1+k]
-                    if text[j-1+self.k] not in self.alph_freq.keys():
-                        self.alph_freq[text[j-1+self.k]]= self.tran[successive,text[j-1+self.k]]
-                    else:
-                        self.alph_freq[text[j-1+self.k]]=self.tran[successive,text[j-1+self.k]]
-        
+                # successive is the past states, text[j-1+k] is the next state.
+                # tran is the transition matrix.
+                # e.g.: {(('adfg', 'dafae', 'dafae'), 'dafae'): 1.0} print("m.tran", m.tran, len(m.tran))
+                # m.kgrams is a dictionary that shows the count of each k successive activities
+                # e.g.: {('abc', 'abc', 'abc'): 1} print("m.kgrams", m.kgrams)
+                #self.tran[successive,text[j-1+k]]=1000
+                self.tran[successive,text[j]] = float(np.random.randint(1, 10000000, size=1)[0])
+                #add count to marginal frequency of kgram
+                if successive not in self.kgrams.keys():
+                    self.kgrams[successive] = self.tran[successive,text[j]]
+                else:
+                    self.kgrams[successive] += self.tran[successive,text[j]]
+                #add count to marginal frequency of the alph at text[j-1+k]
+                if text[j] not in self.alph_freq.keys():
+                    self.alph_freq[text[j]]= self.tran[successive,text[j]]
+                else:
+                    self.alph_freq[text[j]]=self.tran[successive,text[j]]
+
     def order(self):
         # order k of Markov model
         return self.k
 
     def freq(self, kgram):
         # number of occurrences of kgram in text
-        assert len(kgram) == self.k    
+        assert len(kgram) == self.k
         # (check if kgram is of length k)
         return self.kgrams[kgram]
 
@@ -180,13 +180,45 @@ class GenMarkovTransitionProb:
 
     def prob_tran(self):
         # transition matrix with probability
-        
+
         for key, value in self.tran.items():
             # key[0]: k-successive activities
             # key[1]: k+1th activity
             # value: the count from k-successive activities to the k+1th activity
             self.prob_tran_matrix[key] = float(value)/self.freq(key[0])
         return self.prob_tran_matrix
+
+    def _asarray(self):
+        """
+        Added function for mc_entropy package.
+        Takes the transition frequencies stored in self.tran and formats as 2d
+        numpy array. Column indices correspond to index of the kgram in
+        self.kgrams.keys()and row indices
+        of the matrix correspond to the index of each state in self.alph.
+
+        Returns
+        -------
+        2d numpy array. For each column, j, in the array, the entries in each
+        row, i, are the transition probabilities from the state at index j in
+        self.alph to the state at index i in self.alph.
+
+        """
+        #get list of all kgrams and sort list so that array is always in expected order
+        k_successive = list(self.kgrams.keys())
+        k_successive.sort()
+        self.alph.sort()
+        #arrayvecs is empty list to hold the row vectors assembled from the iteration below
+        arrayvecs = []
+        for a in self.alph:
+            row = []
+            for kgram in k_successive:
+                row.append(self.tran[kgram,a])
+            arrayvecs.append(row)
+        array = np.array(arrayvecs)
+        print((self.m, self.m**self.k))
+        print(array.shape)
+        assert array.shape == (self.m, self.m**self.k)
+        return array
 
     def rand(self, kgram):
         # random character following given kgram
@@ -198,7 +230,7 @@ class GenMarkovTransitionProb:
 
     def gen(self, kgram, T):
         # generate a list of length T activities
-        # initial k activities/strings. 
+        # initial k activities/strings.
         assert len(kgram) == self.k
         # by simulating a trajectory through the corresponding
         activity_list = list(kgram)
@@ -212,7 +244,7 @@ class GenMarkovTransitionProb:
             kgram = tuple(kgram[1:]) + (c,)
             activity_list += c
         return activity_list
-        
+
     def stationary_dist(self):
         """
         Added function for mc_entropy package.
@@ -220,7 +252,7 @@ class GenMarkovTransitionProb:
         Returns
         -------
         self.stat_prob - DEFAULTDICT
-            DICTIONARY WHERE EACH KEY, VALUE PAIR IS A KGRAM IN THE SET OF ALL 
+            DICTIONARY WHERE EACH KEY, VALUE PAIR IS A KGRAM IN THE SET OF ALL
             POSSIBLE KGRAMS AND ITS CORRESPONDING STATIONARY PROBABILITY IN THE
             MARKOV PROCESS.
 
@@ -231,21 +263,59 @@ class GenMarkovTransitionProb:
             self.stat_prob[kgram] = freq/Z
         return self.stat_prob
 
-    def entropy_rate(self):
+    def eig_steadystate(self):
+        """
+        Added function for mc_entropy package.
+        Calculates the steady-state probability vector of the first order MC matrix
+        assuming the matrix is a regular stochastic matrix (square, irreducible and aperiodic).
+
+        Method is based on the theory that a steady-state probability vector, q,
+        of a stochastic matrix, P, can be calculated by solving the matrix equation
+        Pq = q. Thus, q is a right eigenvector of P corresponding to the eigenvalue
+        lambda=1.
+
+        Returns
+        -------
+        q : ndarray containing the steady-state probabilities of each state in self.alph.
+
+        """
+        #Get the transition frequency matrix as a numpy array.
+        mcarray = self._asarray()
+        #Convert the transition frequency matrix to a transition probability
+        #matrix (stochastic matrix) whose columns sum to 1.
+        P = mcarray/mcarray.sum(axis=0, keepdims=1)
+        #generate eigenvalues and eigenvectors corresponding to P
+        evals, evecs = np.linalg.eig(P)
+        #print(evals)
+        #print(evecs)
+        #find index in evals associated with the eigenvalue of 1
+        eig_index = np.where(evals.real.round(1) >= 1.)
+        #we use the column evecs[:,eig_index[0]] as a basis for the eigenspace associated with lambda=1
+        qbasis = evecs[:,eig_index].flatten()
+        #scale qbasis to be a probability vector with entries summing to 1
+        q = qbasis/qbasis.sum()
+        #print(q)
+        #print(q.real)
+        assert q.imag.all() == 0.
+        return q.real, P
+
+    def entropy_rate_est(self):
         """ Added function for mc_entropy.
-        
-        Calculates basic entropy rate (equivalent to the Approximate Entropy)
+
+        Estimates basic entropy rate (equivalent to the Approximate Entropy)
         of the Markov process using the transition probabilities stored in
         self.prob_tran_matrix and the stationary probabilities.
         Uses Entropy rate formula as -Sum over all i,j Pr(i)*Pr(i,j)ln(Pr(i,j))
         where Pr(i) is the stationary probability of state i, which corresponds
         to kgram in this case, and Pr(i, j) is the transition probability
-        of i given j, which corresponds to the transition from kgram to alph.
-        
+        of i to j, which corresponds to the transition from kgram to alph.
+
+        Can accommodate non-square transition matrices.
+
         Returns
         -------
-        self.ent_rate.
-        
+        self.ent_rate_est.
+
         """
         # ent_rate is list to store Pr(i)*Pr(i,j)ln(Pr(i,j)) for each i, j.
         ent_rate = []
@@ -255,20 +325,43 @@ class GenMarkovTransitionProb:
             # key[0] = kgram, a tuple
             # key[1] = alph succeeding kgram, single unicode character
             # value =  transition probability from kgram to alph
-            stat_prob = self.stat_prob[key[0]]
-            print(key[0])
-            print(key[1])
+            #stat_prob = self.stat_prob[key[0]]
+            #print(key[0])
+            #print(key[1])
             ent_rate.append(self.stat_prob[key[0]]*value*math.log(value))
-        self.ent_rate = -sum(ent_rate)
+        self.ent_rate_est = -sum(ent_rate)
+        return self.ent_rate_est
+
+    def entropy_rate(self):
+        """
+        Added function for mc_entropy.
+
+        Calculates entropy rate using the transition probability matrix and
+        steady state vector given by the GenMarkovTransitionProb.eig_steadystate() method.
+        Function takes advantage of efficient numpy array broadcasting.
+        Entropy rate calculated as -Sum over all i,j of qj*Pij*lnPij where Pij
+        is the transition probability of j to i, qj is the stationary probability
+        of state i. Assumes a transition matrix in the form of a left stochastic
+        matrix whose columns sum to 1.
+
+        Cannot accommodate non-square transition matrices.
+
+        Returns
+        -------
+        self.ent_rate - INTEGER
+            entropy rate as integer value.
+
+        """
+        q, P = self.eig_steadystate()
+        self.ent_rate = np.negative((q*P*np.log(P)).sum())
         return self.ent_rate
 
-        
 
     def gen_sample(self, kgram, T, seed=None, generator='default'):
         # Updated method for generating a random sample from the Markov transition matrix combining
         # the functionality of the self.gen() and self.rand() methods.
         # This method replaces the use of legacy np.random.choice (deprecated after v1.16)
-        # with current best practice numpy random number generation. 
+        # with current best practice numpy random number generation.
         # gen_sample() allows for user specified BitGenerator and seed for reproducibility.
         # Default BitGenerator is to use the default numpy generator via using np.random.default_rng().
         # This uses the current default bitgenerator, allowing it to adapt as default generator is updated
@@ -296,12 +389,12 @@ class GenMarkovTransitionProb:
             activity_list += c
             kgram = tuple(kgram[1:]) + (c,)
         return activity_list
-    
+
     def dump(self, outpath, **kwargs):
         """Writes MC matrix data to a json file. Opens the file, writes, and closes it.
-        
+
         outpath : PATH-LIKE OBJECT OR STRING LITERAL OF A FILE PATH
-            takes a path object pointing to a file location for the output to be written to. 
+            takes a path object pointing to a file location for the output to be written to.
         **kwargs -- any additional arguments to be fed to json.dump()
         """
         with open(outpath, 'w+') as fouthand:
@@ -312,12 +405,12 @@ class GenMarkovTransitionProb:
                     'Entropy_Rate' : self.ent_rate,
                     'Date_created' : datetime.datetime.now().isoformat(timespec='seconds')}
             json.dump(data, fouthand, **kwargs)
-    
+
     @classmethod
     def load(cls, filepath, **kwargs):
         """
         Contructor method to construct a GenMarkovTransitionProb object from
-        json file created by the GenMarkovTransitionProb.dump method. 
+        json file created by the GenMarkovTransitionProb.dump method.
 
         Parameters
         ----------
@@ -340,12 +433,12 @@ class GenMarkovTransitionProb:
 
 def genMCmodel(root_dir, order_i, states_temp):
     """
-    Function to generate a MC matrix, calculate its entropy rate and save all 
+    Function to generate a MC matrix, calculate its entropy rate and save all
     of its data to a json file.
 
     Parameters
     ----------
-    root_dir : PATH-LIKE OBJECT 
+    root_dir : PATH-LIKE OBJECT
         THE ROOT DIRECTORY FOR THE OUTPUT FILE.
     order_i : INTEGER
         ORDER OF THE MARKOV MATRIX TO BE GENERATED.
@@ -353,7 +446,7 @@ def genMCmodel(root_dir, order_i, states_temp):
         lIST OF THE UNICODE CHARACTERS THAT WILL BE THE STATES OF THE MARKOV
         PROCESS.THE LENGTH OF states_temp SHOULD BE THE SAME AS THE SIZE OF THE
         ALPHABET.
-        
+
     Returns
     -------
     None.
@@ -381,12 +474,26 @@ if __name__ == '__main__':
     #end_sample_size = int(sys.argv[4])
     # based on randomly generated transition matrix.
     # http://www.iaeng.org/publication/WCECS2014/WCECS2014_pp899-901.pdf
-    # 
+    #
     states_temp = [chr(ord('a')+i) for i in range(states_nums)]
     # = ['a','b','c','d','e','f','g','h','u']
     # generate 1000 random transition matrix
     MC1 = genMCmodel(root_dir, order_i, states_temp)
     print(MC1.tran)
-    fpath = get_data_file_path(root_dir, r'MC_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.4f}.json')
-    MC2 = getMCmodel(fpath)
-    MC1 == MC2
+    #fpath = get_data_file_path(root_dir, r'MC_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.4f}.json')
+    #MC2 = getMCmodel(fpath)
+    #MC1 == MC2
+    #MC1_freq = MC1._asarray()
+    estMC1P = MC1.prob_tran()
+    estMC1q = MC1.stationary_dist()
+    MC1q, MC1P = MC1.eig_steadystate()
+    print('estP:', estMC1P)
+    print('P:', MC1P)
+    print('estq:', estMC1q)
+    print('q:', MC1q)
+    print('entropy rate:', MC1.ent_rate)
+    MC1.entropy_rate_est()
+    print('estimated entropy rate:', MC1.ent_rate_est)
+    seq = MC1.gen_sample(tuple(states_temp[:order_i]), 100)
+    print(seq)
+    print(MC1.seed)
