@@ -215,8 +215,8 @@ class GenMarkovTransitionProb:
                 row.append(self.tran[kgram,a])
             arrayvecs.append(row)
         array = np.array(arrayvecs)
-        print((self.m, self.m**self.k))
-        print(array.shape)
+        #print((self.m, self.m**self.k))
+        #print(array.shape)
         assert array.shape == (self.m, self.m**self.k)
         return array
 
@@ -449,7 +449,7 @@ def genMCmodel(root_dir, order_i, states_temp):
 
     Returns
     -------
-    None.
+    MC_model : instance of GenMarkovTransitionProb.
 
     """
     MC_model = GenMarkovTransitionProb(states_temp, order_i)
@@ -479,19 +479,23 @@ if __name__ == '__main__':
     # = ['a','b','c','d','e','f','g','h','u']
     # generate 1000 random transition matrix
     MC1 = genMCmodel(root_dir, order_i, states_temp)
-    print(MC1.tran)
+    #print(MC1.tran)
     #fpath = get_data_file_path(root_dir, r'MC_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.4f}.json')
     #MC2 = getMCmodel(fpath)
     #MC1 == MC2
     #MC1_freq = MC1._asarray()
     estMC1P = MC1.prob_tran()
+#%%
     estMC1q = MC1.stationary_dist()
+#%%
     MC1q, MC1P = MC1.eig_steadystate()
-    print('estP:', estMC1P)
-    print('P:', MC1P)
-    print('estq:', estMC1q)
-    print('q:', MC1q)
-    print('entropy rate:', MC1.ent_rate)
+#%%
+    mcent = MC1.entropy_rate()
+    #print('estP:', estMC1P)
+    #print('P:', MC1P)
+    #print('estq:', estMC1q)
+    #print('q:', MC1q)
+    #print('entropy rate:', MC1.ent_rate)
     MC1.entropy_rate_est()
     print('estimated entropy rate:', MC1.ent_rate_est)
     seq = MC1.gen_sample(tuple(states_temp[:order_i]), 100)
