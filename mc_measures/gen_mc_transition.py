@@ -118,6 +118,7 @@ class GenMarkovTransitionProb:
             else:
                 self.alph_freq[key[1]] += value
         return self
+
     def _new_transition_matrix(self, text):
         if self.k == 1:
             k_successive = [(a) for a in product(text, repeat=1)]
@@ -431,7 +432,7 @@ class GenMarkovTransitionProb:
             text = data['Alphabet']
             return cls(text, data['MC_order'], transition_freq_matrix)
 
-def genMCmodel(root_dir, order_i, states_temp):
+def gen_model(root_dir, order_i, states_temp):
     """
     Function to generate a MC matrix, calculate its entropy rate and save all
     of its data to a json file.
@@ -458,10 +459,44 @@ def genMCmodel(root_dir, order_i, states_temp):
     MC_model.dump(fout_file_path)
     return MC_model
 
-def getMCmodel(file_path):
+def get_model(file_path):
     MC_model_copy = GenMarkovTransitionProb.load(file_path)
     return MC_model_copy
 
+def gen_sample(MC_model, kgram, T, generator='default', seed=None):
+    # Standalone function that takes a GenMarkovTransitionProb instance and
+    # generates a random sample from the Markov transition matrix.
+    # Combines the functionality of the self.gen() and self.rand() methods.
+    # Expects generator to be an instantiated BitGenerator object, otherwise expects no generator
+    # to be provided and will instantiate one using the np.random.default_rng() function.
+    # gen_sample() allows for user specified BitGenerator and seed for reproducibility.
+    # Default BitGenerator is to use the default numpy generator via using np.random.default_rng().
+    # This uses the current default bitgenerator, allowing it to adapt as default generator is updated
+    # in numpy package. Otherwise generator kwarg expects a bit_generator func from np.random
+    # Function also saves seed in self.seed attribute for access later.
+    # activity_list is a list containing the randomly generated markov chain
+
+
+    if generator == 'default':
+        # Set seed sequence using value given to seed arg.
+        # If value is an entropy value from a previous seed sequence, ss will be identical to
+        # the previous seed sequence.
+        ss = np.random.SeedSequence(seed)
+        # save entropy so that seed sequence can be reproduced later
+        MC_model.seed = ss.entropy
+        rng = np.random.default_rng(ss)
+    else:
+        rng = np.random.default_rng(generator)
+    assert len(kgram) == MC_model.k
+    # initiate list to contain generated markov chain
+    activity_list = list(kgram)
+    for i in range(T):
+        #get marginal frequency of kgram
+        Z = sum([MC_model.tran[kgram, alph] for alph in MC_model.alph])
+        c = rng.choice(MC_model.alph, 1, p=np.array([MC_model.tran[kgram, alph] for alph in MC_model.alph])/Z)[0]
+        activity_list.append(c)
+        kgram = tuple(kgram[1:]) + (c,)
+    return activity_list
 
 if __name__ == '__main__':
     # root_dir = "/Users/BeiyuLin/Desktop/five_datasets/"

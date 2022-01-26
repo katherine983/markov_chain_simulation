@@ -32,7 +32,7 @@ def entropy_rate(GMTP):
     ent_rate = np.negative((q*P*np.log(P)).sum())
     return ent_rate
 
-def markovApen(GMTP):
+def markov_apen(GMTP):
     """
     Approximate Entropy of a Markov Chain is equivalent to the entropy rate.
 
@@ -51,7 +51,7 @@ def markovApen(GMTP):
     apen = entropy_rate(GMTP)
     return apen
 
-def markovSampen(GMTP):
+def markov_sampen(GMTP):
     q, P = GMTP.eig_steadystate()
     A = -1 + np.sum(q*P)
     B = -1 + np.sum(q)
