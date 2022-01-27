@@ -475,7 +475,8 @@ def gen_sample(MC_model, kgram, T, generator='default', seed=None):
     # in numpy package. Otherwise generator kwarg expects a bit_generator func from np.random
     # Function also saves seed in self.seed attribute for access later.
     # activity_list is a list containing the randomly generated markov chain
-
+    # Returns the randomly generated sequence with the first k symbols dropped
+    # so as to remove kgram from the sequence.
 
     if generator == 'default':
         # Set seed sequence using value given to seed arg.
@@ -496,7 +497,7 @@ def gen_sample(MC_model, kgram, T, generator='default', seed=None):
         c = rng.choice(MC_model.alph, 1, p=np.array([MC_model.tran[kgram, alph] for alph in MC_model.alph])/Z)[0]
         activity_list.append(c)
         kgram = tuple(kgram[1:]) + (c,)
-    return activity_list
+    return activity_list[len(kgram):]
 
 if __name__ == '__main__':
     # root_dir = "/Users/BeiyuLin/Desktop/five_datasets/"
