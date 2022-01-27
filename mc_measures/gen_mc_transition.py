@@ -427,7 +427,7 @@ class GenMarkovTransitionProb:
 
         """
         with open(filepath, 'r') as fhand:
-            data = json.load(fhand)
+            data = json.load(fhand, **kwargs)
             transition_freq_matrix = {literal_eval(k) : v for k, v in data['Transition_Matrix_Frequencies'].items()}
             text = data['Alphabet']
             return cls(text, data['MC_order'], transition_freq_matrix)
