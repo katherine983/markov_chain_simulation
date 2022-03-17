@@ -5,7 +5,7 @@ Created on Wed Jan 19 17:36:43 2022
 @author: Wuestney
 
 Package containing independent functions for calculating the true steady-state values
-of various entropy measures from a ergodic Markov Chain stored in a
+of various entropy measures from an ergodic Markov Chain stored in a
 GenMarkovTransitionProb class instance from the mc_entropy/mc_measures/gen_mc_transition.py module
 """
 
@@ -53,7 +53,7 @@ def markov_apen(GMTP):
 
 def markov_sampen(GMTP):
     q, P = GMTP.eig_steadystate()
-    A = -1 + np.sum(q*P)
-    B = -1 + np.sum(q)
-    sampen = np.negative(np.log((A/B)))
+    Amr = np.sum((q*P)**2)
+    Bmr = np.sum(q*q)
+    sampen = np.negative(np.log((Amr/Bmr)))
     return sampen
