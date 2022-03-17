@@ -77,7 +77,11 @@ class GenMarkovTransitionProb:
         self.k = k
         self.prob_tran_matrix = defaultdict(float)
         # the transtion matrix (with count not probability)
+        # if k>1 the transition matrix will be
+        # # the multiple markov transition matrix as simple one-step matrix
         self.tran = defaultdict(float)
+        # if k>1 the transition matrix will be an alph**k first order matrix (with count not probability)
+        self.tranexp = defaultdict(float)
         # a list of unique activities/states
         self.alph = list(set(list(text)))
         # number of states
@@ -104,8 +108,8 @@ class GenMarkovTransitionProb:
             self._load_transition_matrix(transition_freq_matrix)
 
     def _load_transition_matrix(self, transition_freq_matrix):
-        self.tran = transition_freq_matrix
-        for key, value in self.tran.items():
+        self.tranexp = transition_freq_matrix
+        for key, value in self.tranexp.items():
             # key[0] = kgram
             # key[1] = alph
             # value = count of transition from kgram to alph
@@ -113,7 +117,13 @@ class GenMarkovTransitionProb:
                 self.kgrams[key[0]] = value
             else:
                 self.kgrams[key[0]] += value
-            if key[0] not in self.alph_freq.keys():
+            # get first alph of key[1]
+            j = key[1][0]
+            if (key[0], j) not in self.tran.keys():
+                self.tran[key[0], j] = value
+            else:
+                self.tran[key[0], j] += value
+            if j not in self.alph_freq.keys():
                 self.alph_freq[key[1]] = value
             else:
                 self.alph_freq[key[1]] += value
@@ -138,26 +148,60 @@ class GenMarkovTransitionProb:
         else:
             print("chose the MC order between 0 to 6.")
         ## assign a random number to each cell/element in the transition matrix.
-        for successive in k_successive:
+        if self.k == 1:
+            for successive in k_successive:
             # print("in successive", successive)
-            for j in range(self.n):
-                # successive is the past states, text[j-1+k] is the next state.
-                # tran is the transition matrix.
-                # e.g.: {(('adfg', 'dafae', 'dafae'), 'dafae'): 1.0} print("m.tran", m.tran, len(m.tran))
-                # m.kgrams is a dictionary that shows the count of each k successive activities
-                # e.g.: {('abc', 'abc', 'abc'): 1} print("m.kgrams", m.kgrams)
-                #self.tran[successive,text[j-1+k]]=1000
-                self.tran[successive,text[j]] = float(np.random.randint(1, 10000000, size=1)[0])
-                #add count to marginal frequency of kgram
-                if successive not in self.kgrams.keys():
-                    self.kgrams[successive] = self.tran[successive,text[j]]
-                else:
-                    self.kgrams[successive] += self.tran[successive,text[j]]
-                #add count to marginal frequency of the alph at text[j-1+k]
-                if text[j] not in self.alph_freq.keys():
-                    self.alph_freq[text[j]]= self.tran[successive,text[j]]
-                else:
-                    self.alph_freq[text[j]]=self.tran[successive,text[j]]
+                for j in range(self.n):
+                    # successive is the past states, text[j-1+k] is the next state.
+                    # tran is the transition matrix.
+                    # e.g.: {(('adfg', 'dafae', 'dafae'), 'dafae'): 1.0} print("m.tran", m.tran, len(m.tran))
+                    # m.kgrams is a dictionary that shows the count of each k successive activities
+                    # e.g.: {('abc', 'abc', 'abc'): 1} print("m.kgrams", m.kgrams)
+                    #self.tran[successive,text[j]]=1000
+                    self.tran[successive,text[j]] = float(np.random.randint(1, 10000000, size=1)[0])
+                    #add count to marginal frequency of kgram
+                    if successive not in self.kgrams.keys():
+                        self.kgrams[successive] = self.tran[successive,text[j]]
+                    else:
+                        self.kgrams[successive] += self.tran[successive,text[j]]
+                    #add count to marginal frequency of the alph at text[j]
+                    if text[j] not in self.alph_freq.keys():
+                        self.alph_freq[text[j]]= self.tran[successive,text[j]]
+                    else:
+                        self.alph_freq[text[j]]=self.tran[successive,text[j]]
+        else:
+            for successive in k_successive:
+                # print("in successive", successive)
+                for jk in k_successive:
+                    # successive is the past k-states, jk is the next k-states.
+                    # self.tranexp is the expanded a**k markov chain
+                    # e.g.: {(('a', 'd', 'f', 'g', 'e'), ('a', 'd', 'f', 'g', 'e')): 1.0}
+                    # j is the next state, the marginal frequency of j given past k-states
+                    # tran is the transition matrix.
+                    # e.g.: {(('a', 'd', 'f', 'g', 'e'), 'd'): 1.0}
+                    # m.kgrams is a dictionary that shows the count of each k successive activities
+                    # e.g.: {('a', 'd', 'f', 'g', 'e'): 1} print("m.kgrams", m.kgrams)
+                    #self.tran[successive,text[j-1+k]]=1000
+                    self.tranexp[successive,jk] = float(np.random.randint(1, 10000000, size=1)[0])
+                    #add count to marginal frequency of kgram
+                    if successive not in self.kgrams.keys():
+                        self.kgrams[successive] = self.tranexp[successive,jk]
+                    else:
+                        self.kgrams[successive] += self.tranexp[successive,jk]
+                    #get regular multiple markov chain transition matrix
+                    #from expanded matrix (with count not probability)
+                    j = jk[0]
+                    if (successive, j) not in self.tran.keys():
+                        self.tran[successive, j] = self.tranexp[successive,jk]
+                    else:
+                        self.tran[successive, j] += self.tranexp[successive,jk]
+                    #add count to marginal frequency of j
+                    if j not in self.alph_freq.keys():
+                        self.alph_freq[j]= self.tranexp[successive,jk]
+                    else:
+                        self.alph_freq[j]=self.tranexp[successive,jk]
+
+
 
     def order(self):
         # order k of Markov model
@@ -192,33 +236,32 @@ class GenMarkovTransitionProb:
     def _asarray(self):
         """
         Added function for mc_entropy package.
-        Takes the transition frequencies stored in self.tran and formats as 2d
-        numpy array. Column indices correspond to index of the kgram in
-        self.kgrams.keys()and row indices
-        of the matrix correspond to the index of each state in self.alph.
+        Takes the transition frequencies stored in self.tranexp and formats as 2d
+        numpy array. Row and Column indices correspond to index of the kgram in
+        self.kgrams.keys(). The output is a numpy array containing the left
+        stochastic matrix whose columns are each a probability vector summing to 1.
 
         Returns
         -------
         2d numpy array. For each column, j, in the array, the entries in each
         row, i, are the transition probabilities from the state at index j in
-        self.alph to the state at index i in self.alph.
+        self.kgrams to the state at index i in self.kgrams.
 
         """
         #get list of all kgrams and sort list so that array is always in expected order
         k_successive = list(self.kgrams.keys())
         k_successive.sort()
-        self.alph.sort()
         #arrayvecs is empty list to hold the row vectors assembled from the iteration below
         arrayvecs = []
-        for a in self.alph:
+        for i in k_successive:
             row = []
-            for kgram in k_successive:
-                row.append(self.tran[kgram,a])
+            for j in k_successive:
+                row.append(self.tranexp[j,i])
             arrayvecs.append(row)
         array = np.array(arrayvecs)
         #print((self.m, self.m**self.k))
         #print(array.shape)
-        assert array.shape == (self.m, self.m**self.k)
+        assert array.shape == (self.m**self.k, self.m**self.k)
         return array
 
     def rand(self, kgram):
@@ -401,7 +444,7 @@ class GenMarkovTransitionProb:
         with open(outpath, 'w+') as fouthand:
             data = {'MC_order' : self.k,
                     'Alphabet' : self.alph,
-                    'Transition_Matrix_Frequencies' : {str(k) : v for k, v in self.tran.items()},
+                    'Transition_Matrix_Frequencies' : {str(k) : v for k, v in self.tranexp.items()},
                     'Stationary_Distribution_Frequencies' : {str(k) : v for k, v in self.kgrams.items()},
                     'Entropy_Rate' : self.ent_rate,
                     'Date_created' : datetime.datetime.now().isoformat(timespec='seconds')}
@@ -430,7 +473,8 @@ class GenMarkovTransitionProb:
             data = json.load(fhand, **kwargs)
             transition_freq_matrix = {literal_eval(k) : v for k, v in data['Transition_Matrix_Frequencies'].items()}
             text = data['Alphabet']
-            return cls(text, data['MC_order'], transition_freq_matrix)
+            MC = cls(text, data['MC_order'], transition_freq_matrix)
+            return MC
 
 def gen_model(root_dir, order_i, states_temp):
     """
@@ -503,21 +547,23 @@ if __name__ == '__main__':
     # root_dir = "/Users/BeiyuLin/Desktop/five_datasets/"
     root_dir = "./"
     # order_i is the given order of markov chain
-    order_i = int(sys.argv[1])
+    # order_i = int(sys.argv[1])
+    order_i = 2
     # states_nums is the number of states in the process (i.e. the size of the alphabet)
-    states_nums = int(sys.argv[2])
+    # states_nums = int(sys.argv[2])
+    states_nums = 4
     #start_sample_size = int(sys.argv[3])
     #end_sample_size = int(sys.argv[4])
     # based on randomly generated transition matrix.
     # http://www.iaeng.org/publication/WCECS2014/WCECS2014_pp899-901.pdf
-    #
     states_temp = [chr(ord('a')+i) for i in range(states_nums)]
     # = ['a','b','c','d','e','f','g','h','u']
     # generate 1000 random transition matrix
-    MC1 = genMCmodel(root_dir, order_i, states_temp)
+    MC1 = gen_model(root_dir, order_i, states_temp)
     #print(MC1.tran)
-    #fpath = get_data_file_path(root_dir, r'MC_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.4f}.json')
-    #MC2 = getMCmodel(fpath)
+    fpath = get_data_file_path(root_dir, r'MC_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.4f}.json')
+#%%
+    MC2 = get_model(fpath)
     #MC1 == MC2
     #MC1_freq = MC1._asarray()
     estMC1P = MC1.prob_tran()
@@ -525,6 +571,7 @@ if __name__ == '__main__':
     estMC1q = MC1.stationary_dist()
 #%%
     MC1q, MC1P = MC1.eig_steadystate()
+    MC2q, MC2P = MC2.eig_steadystate()
 #%%
     mcent = MC1.entropy_rate()
     #print('estP:', estMC1P)
