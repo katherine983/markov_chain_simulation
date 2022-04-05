@@ -169,6 +169,12 @@ class GenMarkovTransitionProb:
                         self.alph_freq[text[j]]= self.tran[successive,text[j]]
                     else:
                         self.alph_freq[text[j]]=self.tran[successive,text[j]]
+            # for first order markov chain self.tran is already square, so self.tranexp is equivalent
+            for i, j in self.tran.keys():
+                # ensures key in self.tranexp matches tuple format of MC k>1
+                self.tranexp[i, tuple(j)] = self.tran[i, j]
+
+
         else:
             for successive in k_successive:
                 # print("in successive", successive)
@@ -385,7 +391,7 @@ class GenMarkovTransitionProb:
         Function takes advantage of efficient numpy array broadcasting.
         Entropy rate calculated as -Sum over all i,j of qj*Pij*lnPij where Pij
         is the transition probability of j to i, qj is the stationary probability
-        of state i. Assumes a transition matrix in the form of a left stochastic
+        of state j. Assumes a transition matrix in the form of a left stochastic
         matrix whose columns sum to 1.
 
         Cannot accommodate non-square transition matrices.
@@ -499,7 +505,7 @@ def gen_model(root_dir, order_i, states_temp):
     """
     MC_model = GenMarkovTransitionProb(states_temp, order_i)
     MC_model.entropy_rate()
-    fout_file_path = create_output_file_path(root_dir, r'MC_matrices', f'Order{order_i}Alph{MC_model.m}ER{MC_model.ent_rate:.4f}.json')
+    fout_file_path = create_output_file_path(root_dir, r'mc_matrices', f'Order{order_i}Alph{MC_model.m}ER{MC_model.ent_rate:.4f}.json')
     MC_model.dump(fout_file_path)
     return MC_model
 
@@ -548,10 +554,10 @@ if __name__ == '__main__':
     root_dir = "./"
     # order_i is the given order of markov chain
     # order_i = int(sys.argv[1])
-    order_i = 2
+    order_i = 1
     # states_nums is the number of states in the process (i.e. the size of the alphabet)
     # states_nums = int(sys.argv[2])
-    states_nums = 4
+    states_nums = 3
     #start_sample_size = int(sys.argv[3])
     #end_sample_size = int(sys.argv[4])
     # based on randomly generated transition matrix.
