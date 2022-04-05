@@ -403,7 +403,7 @@ class GenMarkovTransitionProb:
 
         """
         q, P = self.eig_steadystate()
-        self.ent_rate = np.negative((q*P*np.log(P)).sum())
+        self.ent_rate = np.negative(np.nansum((q*P*np.log(P))))
         return self.ent_rate
 
 
