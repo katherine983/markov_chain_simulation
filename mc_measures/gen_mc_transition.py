@@ -9,7 +9,7 @@ import json
 from ast import literal_eval
 import sys
 
-def create_output_file_path(root_dir=None, out_dir='MC_matrices', out_name=None, overide=False):
+def create_output_file_path(root_dir=None, out_dir='mc_matrices', out_name=None, overide=False):
     """ Create path object for the output filepath for the output file.
 
     Optional Keyword arguments:
@@ -34,13 +34,14 @@ def create_output_file_path(root_dir=None, out_dir='MC_matrices', out_name=None,
     else:
         return out_path
 
-def get_data_file_path(root_dir=None, out_dir='MC_matrices', out_name=None):
-    """ Create path object for the output filepath for the output file.
+def get_data_file_path(root_dir=None, out_dir='mc_matrices', out_name=None):
+    """ Create path object pointing to an existing data file. Checks that file
+    path and raises exception if it doesn't.
 
     Optional Keyword arguments:
     root_dir -- string literal or pathlike object refering to the target root directory
     out_dir -- string literal representing target directory to be appended to root if root is not target directory
-    out_name -- string literal representing the filename for the output file
+    out_name -- string literal representing the filename for the data file
 
     Return : path object to save simulation data in
 
@@ -279,11 +280,14 @@ class GenMarkovTransitionProb:
         return np.random.choice(self.alph, 1, p=np.array([self.tran[kgram, alph] for alph in self.alph])/Z)
 
     def gen(self, kgram, T):
+
         # generate a list of length T activities
         # initial k activities/strings.
         assert len(kgram) == self.k
         # by simulating a trajectory through the corresponding
         activity_list = list(kgram)
+        # ensure kgram is a tuple
+        kgram = tuple(kgram)
         # Markov chain. The first k activities of the newly
         for i in range(T):
             # generated list should be the argument kgram.
@@ -510,8 +514,8 @@ def gen_model(root_dir, order_i, states_temp):
     return MC_model
 
 def get_model(file_path):
-    MC_model_copy = GenMarkovTransitionProb.load(file_path)
-    return MC_model_copy
+    mc_loaded = GenMarkovTransitionProb.load(file_path)
+    return mc_loaded
 
 def gen_sample(MC_model, kgram, T, generator='default', seed=None):
     # Standalone function that takes a GenMarkovTransitionProb instance and
@@ -567,7 +571,7 @@ if __name__ == '__main__':
     # generate 1000 random transition matrix
     MC1 = gen_model(root_dir, order_i, states_temp)
     #print(MC1.tran)
-    fpath = get_data_file_path(root_dir, r'MC_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.4f}.json')
+    fpath = get_data_file_path(root_dir, r'mc_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.4f}.json')
 #%%
     MC2 = get_model(fpath)
     #MC1 == MC2

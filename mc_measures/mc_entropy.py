@@ -29,7 +29,10 @@ def entropy_rate(GMTP):
 
     """
     q, P = GMTP.eig_steadystate()
-    ent_rate = np.negative(np.nansum((q*P*np.log(P))))
+    with np.testing.suppress_warnings() as sup:
+        sup.filter(RuntimeWarning, 'divide by zero')
+        sup.filter(RuntimeWarning, 'invalid value encountered in multiply')
+        ent_rate = np.negative(np.nansum((q*P*np.log(P))))
     return ent_rate
 
 def markov_apen(GMTP):
