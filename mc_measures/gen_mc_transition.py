@@ -301,6 +301,8 @@ class GenMarkovTransitionProb:
 
     def stationary_dist(self):
         """
+        Deprecated as it is not very accurate compared to eig_steadystate
+
         Added function for mc_entropy package.
 
         Returns
