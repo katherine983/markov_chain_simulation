@@ -5,5 +5,5 @@ Created on Wed Jan 19 17:35:28 2022
 @author: Wuestney
 """
 
-import mc_measures.gen_mc_transition
-import mc_measures.mc_entropy
+from . import gen_mc_transition
+from . import mc_entropy
