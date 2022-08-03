@@ -16,19 +16,17 @@ here = pathlib.Path(__file__).resolve().parent
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
-      name = "pyusm",
-      version = "0.1.0",
-      description = "A Python implementation of Universal Sequence Maps.",
+      name = "mc_measures",
+      version = "0.1.",
+      description = "A package for generating markov chain matrices to simulate markov chains and measure their entropy.",
       long_description = long_description,
       long_description_content_type = "text/markdown",
       url = "https://github.com/katherine983/pyusm",
       author = "Katherine Wuestney",
       # author_email = "katherineann983@gmail.com",
-      keywords = "CGR, chaos game representation, universal sequence maps, USM, iterated function systems",
-      install_requires = ['scipy>=1.6.2',
-                          'numpy>=1.20.1',
-                          'matplotlib>=3.3.4',
+      keywords = "markov chains, markov chain entropy, data simulation",
+      install_requires = ['numpy>=1.20',
                           'pytest>=6.2.3'
                           ],
-      packages = ['pyusm'],
+      packages = ['mc_measures'],
       python_requires = ">=3.8")
