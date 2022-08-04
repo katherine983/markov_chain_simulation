@@ -520,6 +520,32 @@ def get_model(file_path):
     return mc_loaded
 
 def gen_sample(MC_model, kgram, T, generator='default', seed=None):
+    """
+    Function to generate sample markov chain randomly based on the probability
+    transitions in self.tran
+
+    Parameters
+    ----------
+    MC_model : TYPE
+        DESCRIPTION.
+    kgram : TUP, LIST, ARRAY
+        FIRST K STATES TO START THE K-ORDER MARKOV CHAIN.
+    T : INT
+        LENGTH OF CHAIN TO GENERATE.
+    generator : STRING OR INSTANCE OF numpy.random.Generator CLASS, optional
+        THE NUMPY BITGENERATOR TO USE TO GENERATE THE RANDOM NUMBERS FOR THE SAMPLE.
+        The default is 'default' which inidicates to use the numpy default_rng()
+        bitgenerator which implements the current numpy default bitgenerator.
+    seed : {NONE, INT}, OPTIONAL
+        SEED TO USE TO FEED THE BITGENERATOR FOR THE RANDOM NUMBER GENERATOR.
+        The default is None.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
     # Standalone function that takes a GenMarkovTransitionProb instance and
     # generates a random sample from the Markov transition matrix.
     # Combines the functionality of the self.gen() and self.rand() methods.
