@@ -28,7 +28,10 @@ def entropy_rate(GMTP):
         ENTROPY RATE AS INTEGER VALUE.
 
     """
-    q, P = GMTP.eig_steadystate()
+    if GMTP.eig_statprob is None:
+        q, P = GMTP.eig_steadystate()
+    else:
+        q, P = GMTP.eig_statprob
     with np.testing.suppress_warnings() as sup:
         sup.filter(RuntimeWarning, 'divide by zero')
         sup.filter(RuntimeWarning, 'invalid value encountered in multiply')

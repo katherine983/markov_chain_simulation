@@ -98,6 +98,7 @@ class GenMarkovTransitionProb:
         self.stat_prob = defaultdict(int)
         # marginal frequency of each alph in the matrix
         self.alph_freq = defaultdict(int)
+        self.eig_statprobs = None
         self.ent_rate_est = None
         self.ent_rate = None
         # if self.k == 0:
@@ -353,6 +354,7 @@ class GenMarkovTransitionProb:
         #print(q)
         #print(q.real)
         assert q.imag.all() == 0.
+        self.eig_statprobs = (q.real, P)
         return q.real, P
 
     def entropy_rate_est(self):
@@ -483,6 +485,7 @@ class GenMarkovTransitionProb:
         """
         with open(filepath, 'r') as fhand:
             data = json.load(fhand, **kwargs)
+            #get expanded transition matrix
             transition_freq_matrix = {literal_eval(k) : v for k, v in data['Transition_Matrix_Frequencies'].items()}
             text = data['Alphabet']
             MC = cls(text, data['MC_order'], transition_freq_matrix)
@@ -526,8 +529,8 @@ def gen_sample(MC_model, kgram, T, generator='default', seed=None):
 
     Parameters
     ----------
-    MC_model : TYPE
-        DESCRIPTION.
+    MC_model : GENMARKOVTRANSITIONPROB INSTANCE
+        INSTANCE OF GMTP.
     kgram : TUP, LIST, ARRAY
         FIRST K STATES TO START THE K-ORDER MARKOV CHAIN.
     T : INT
@@ -542,7 +545,7 @@ def gen_sample(MC_model, kgram, T, generator='default', seed=None):
 
     Returns
     -------
-    TYPE
+    ACTIVITY LIST
         DESCRIPTION.
 
     """
