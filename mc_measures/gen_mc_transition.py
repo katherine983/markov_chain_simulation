@@ -8,6 +8,7 @@ import datetime
 import json
 from ast import literal_eval
 import sys
+#from memory_profiler import profile
 
 def create_output_file_path(root_dir=None, out_dir='mc_matrices', out_name=None, overide=False):
     """ Create path object for the output filepath for the output file.
@@ -130,7 +131,8 @@ class GenMarkovTransitionProb:
             else:
                 self.alph_freq[key[1]] += value
         return self
-
+    
+    @profile
     def _new_transition_matrix(self, text):
         if self.k == 1:
             k_successive = [(a) for a in product(text, repeat=1)]
@@ -241,6 +243,7 @@ class GenMarkovTransitionProb:
             self.prob_tran_matrix[key] = float(value)/self.freq(key[0])
         return self.prob_tran_matrix
 
+    @profile
     def _asarray(self):
         """
         Added function for mc_entropy package.
@@ -319,7 +322,8 @@ class GenMarkovTransitionProb:
         for kgram, freq in self.kgrams.items():
             self.stat_prob[kgram] = freq/Z
         return self.stat_prob
-
+    
+    @profile
     def eig_steadystate(self):
         """
         Added function for mc_entropy package.
@@ -389,7 +393,8 @@ class GenMarkovTransitionProb:
             ent_rate.append(self.stat_prob[key[0]]*value*math.log(value))
         self.ent_rate_est = -sum(ent_rate)
         return self.ent_rate_est
-
+    
+    @profile
     def entropy_rate(self):
         """
         Added function for mc_entropy.
@@ -490,7 +495,8 @@ class GenMarkovTransitionProb:
             text = data['Alphabet']
             MC = cls(text, data['MC_order'], transition_freq_matrix)
             return MC
-        
+
+#@profile
 def gen_model(root_dir, order_i, states_temp):
     """
     Function to generate a MC matrix, calculate its entropy rate and save all
@@ -585,16 +591,16 @@ def gen_sample(MC_model, kgram, T, generator='default', seed=None):
     return activity_list[len(kgram):]
 #%%
 if __name__ == '__main__':
-    from resource import getrusage, RUSAGE_SELF
+    #from resource import getrusage, RUSAGE_SELF
     # root_dir = "/Users/BeiyuLin/Desktop/five_datasets/"
     root_dir = "./"
     # order_i is the given order of markov chain
     # order_i = int(sys.argv[1])
     #order_i = [1, 2, 3, 4]
-    order_i = 2
+    order_i = 3
     # states_nums is the number of states in the process (i.e. the size of the alphabet)
     # states_nums = int(sys.argv[2])
-    states_nums = 4
+    states_nums = 20
     #start_sample_size = int(sys.argv[3])
     #end_sample_size = int(sys.argv[4])
     # based on randomly generated transition matrix.
@@ -603,8 +609,8 @@ if __name__ == '__main__':
     # = ['a','b','c','d','e','f','g','h','u']
     # generate 1000 random transition matrix
     MC1 = gen_model(root_dir, order_i, states_temp)
-    print("Size of expanded transition matrix:", (order_i + 4), 'x', states_nums)
-    print("Peak memory (MiB):", int(getrusage(RUSAGE_SELF).ru_maxrss)/1024)
+    #print("Size of expanded transition matrix:", (order_i + 4), 'x', states_nums)
+    #print("Peak memory (MiB):", int(getrusage(RUSAGE_SELF).ru_maxrss)/1024)
 #%%
     #print(MC1.tran)
     fpath = get_data_file_path(root_dir, r'mc_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.4f}.json')
