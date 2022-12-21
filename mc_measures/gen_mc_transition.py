@@ -160,7 +160,7 @@ class GenMarkovTransitionProb:
                     # m.kgrams is a dictionary that shows the count of each k successive activities
                     # e.g.: {('abc', 'abc', 'abc'): 1} print("m.kgrams", m.kgrams)
                     #self.tran[successive,text[j]]=1000
-                    self.tran[successive,text[j]] = float(np.random.randint(1, 10000000, size=1)[0])
+                    self.tran[successive,text[j]] = float(np.random.randint(1, 100, size=1)[0])
                     #add count to marginal frequency of kgram
                     if successive not in self.kgrams.keys():
                         self.kgrams[successive] = self.tran[successive,text[j]]
@@ -190,7 +190,7 @@ class GenMarkovTransitionProb:
                     # m.kgrams is a dictionary that shows the count of each k successive activities
                     # e.g.: {('a', 'd', 'f', 'g', 'e'): 1} print("m.kgrams", m.kgrams)
                     #self.tran[successive,text[j-1+k]]=1000
-                    self.tranexp[successive,jk] = float(np.random.randint(1, 10000000, size=1)[0])
+                    self.tranexp[successive,jk] = float(np.random.randint(1, 100, size=1)[0])
                     #add count to marginal frequency of kgram
                     if successive not in self.kgrams.keys():
                         self.kgrams[successive] = self.tranexp[successive,jk]
@@ -514,7 +514,7 @@ def gen_model(root_dir, order_i, states_temp):
     """
     MC_model = GenMarkovTransitionProb(states_temp, order_i)
     MC_model.entropy_rate()
-    fout_file_path = create_output_file_path(root_dir, r'mc_matrices', f'Order{order_i}Alph{MC_model.m}ER{MC_model.ent_rate:.4f}.json')
+    fout_file_path = create_output_file_path(root_dir, r'mc_matrices', f'Order{order_i}Alph{MC_model.m}ER{MC_model.ent_rate:.5f}.json')
     MC_model.dump(fout_file_path)
     return MC_model
 
@@ -522,7 +522,7 @@ def get_model(file_path):
     mc_loaded = GenMarkovTransitionProb.load(file_path)
     return mc_loaded
 
-def gen_sample(MC_model, kgram, T, generator='default', seed=None):
+def gen_sample(MC_model, kgram, T, generator='default', seed=None, dropfirst=0):
     """
     Function to generate sample markov chain randomly based on the probability
     transitions in self.tran
@@ -542,6 +542,8 @@ def gen_sample(MC_model, kgram, T, generator='default', seed=None):
     seed : {NONE, INT}, OPTIONAL
         SEED TO USE TO FEED THE BITGENERATOR FOR THE RANDOM NUMBER GENERATOR.
         The default is None.
+    dropfirst : INT, OPTIONAL
+        NUMBER OF STATES TO DROP FROM THE FRONT OF THE SAMPLE SEQUENCE
 
     Returns
     -------
@@ -573,7 +575,8 @@ def gen_sample(MC_model, kgram, T, generator='default', seed=None):
         rng = np.random.default_rng(ss)
     else:
         rng = np.random.default_rng(generator)
-    assert len(kgram) == MC_model.k
+    kgram = tuple(kgram)
+    assert len(kgram) == MC_model.k, f"The initial kgram, {kgram}, is a different length than k ({MC_model.k})"
     # initiate list to contain generated markov chain
     activity_list = list(kgram)
     for i in range(T):
@@ -582,10 +585,10 @@ def gen_sample(MC_model, kgram, T, generator='default', seed=None):
         c = rng.choice(MC_model.alph, 1, p=np.array([MC_model.tran[kgram, alph] for alph in MC_model.alph])/Z)[0]
         activity_list.append(c)
         kgram = tuple(kgram[1:]) + (c,)
-    return activity_list[len(kgram):]
+    return activity_list[dropfirst:]
 #%%
 if __name__ == '__main__':
-    from resource import getrusage, RUSAGE_SELF
+    #from resource import getrusage, RUSAGE_SELF
     # root_dir = "/Users/BeiyuLin/Desktop/five_datasets/"
     root_dir = "./"
     # order_i is the given order of markov chain
@@ -594,7 +597,7 @@ if __name__ == '__main__':
     order_i = 2
     # states_nums is the number of states in the process (i.e. the size of the alphabet)
     # states_nums = int(sys.argv[2])
-    states_nums = 4
+    states_nums = 20
     #start_sample_size = int(sys.argv[3])
     #end_sample_size = int(sys.argv[4])
     # based on randomly generated transition matrix.
@@ -604,10 +607,10 @@ if __name__ == '__main__':
     # generate 1000 random transition matrix
     MC1 = gen_model(root_dir, order_i, states_temp)
     print("Size of expanded transition matrix:", (order_i + 4), 'x', states_nums)
-    print("Peak memory (MiB):", int(getrusage(RUSAGE_SELF).ru_maxrss)/1024)
+    #print("Peak memory (MiB):", int(getrusage(RUSAGE_SELF).ru_maxrss)/1024)
 #%%
     #print(MC1.tran)
-    fpath = get_data_file_path(root_dir, r'mc_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.4f}.json')
+    fpath = get_data_file_path(root_dir, r'mc_matrices', f'Order{MC1.k}Alph{MC1.m}ER{MC1.ent_rate:.5f}.json')
 """
     MC2 = get_model(fpath)
     #MC1 == MC2
