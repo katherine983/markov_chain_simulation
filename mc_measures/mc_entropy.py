@@ -28,7 +28,7 @@ def entropy_rate(GMTP):
         ENTROPY RATE AS INTEGER VALUE.
 
     """
-    if GMTP.eig_statprob is None:
+    if not hasattr(GMTP, 'eig_statprob'):
         q, P = GMTP.eig_steadystate()
     else:
         q, P = GMTP.eig_statprob
